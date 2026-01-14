@@ -1,0 +1,41 @@
+# ScamGuard AI - Copilot Instructions
+
+## 1. Project Overview
+**ScamGuard AI** is a fraud detection tool built for a hackathon. It uses **Streamlit** for the frontend and **OpenAI (GPT-4o-mini & Whisper)** for the backend.
+* **Goal:** Protect vulnerable users (seniors) from scams via Text and Audio analysis.
+* **Core Stack:** Python, Streamlit, OpenAI API.
+
+## 2. Architecture & File Structure
+* **`app.py`**: The entry point. Contains **both** UI code and Logic (for speed).
+* **`.env`**: Stores `OPENAI_API_KEY`. **NEVER** commit this.
+* **`requirements.txt`**: Dependency list.
+
+## 3. Critical Developer Workflows
+* **Running the App:**
+    ```bash
+    streamlit run app.py
+    ```
+* **Adding Dependencies:**
+    * Install: `pip install <package>`
+    * Freeze: `pip freeze > requirements.txt` (Run this before every commit).
+* **Testing:**
+    * There are no unit tests. Test manually by running the app and pasting "fake scam" text.
+
+## 4. Coding Conventions (Streamlit Specific)
+* **State Management:** Streamlit reruns the entire script on every interaction.
+    * *Bad:* initializing heavy variables (like DB connections) globally without caching.
+    * *Good:* Use `@st.cache_resource` for clients/models and `if 'key' not in st.session_state` for variables.
+* **Secrets:**
+    * Always use `os.getenv("KEY")` and `load_dotenv()`.
+    * Never hardcode keys, even for "quick tests."
+
+## 5. AI Interaction Patterns (Backend)
+* **Prompts:**
+    * Keep prompts inside the function where they are used (e.g., `analyze_text`).
+    * Use **Structured Output** in prompts (e.g., "1. Score, 2. Red Flags, 3. Verdict") to make parsing easier.
+* **Models:**
+    * Default to `gpt-4o-mini` for speed/cost.
+    * Use `whisper-1` for audio transcription.
+
+## 6. Future Scalability (If Logic Grows)
+* If `app.py` exceeds 200 lines, move logic functions (`analyze_text`, `analyze_audio`) into a new file named `utils.py` and import them.
