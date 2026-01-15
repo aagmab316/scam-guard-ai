@@ -47,21 +47,11 @@ def analyze_content(content_input, is_audio=False):
         [Specific advice based on the scam type]
         """
 
-        # Use spinner only when streamlit is actually running
-        try:
-            with st.spinner("Consulting Gemini AI..."):
-                if is_audio:
-                    # Gemini can process the audio file directly!
-                    response = model.generate_content([base_prompt, content_input])
-                else:
-                    # Text analysis
-                    response = model.generate_content(f"{base_prompt}\n\nMessage to Analyze:\n{content_input}")
-        except:
-            # If not in streamlit context, just run without spinner
-            if is_audio:
-                response = model.generate_content([base_prompt, content_input])
-            else:
-                response = model.generate_content(f"{base_prompt}\n\nMessage to Analyze:\n{content_input}")
+        # Generate content
+        if is_audio:
+            response = model.generate_content([base_prompt, content_input])
+        else:
+            response = model.generate_content(f"{base_prompt}\n\nMessage to Analyze:\n{content_input}")
                 
         return response.text
             
@@ -82,7 +72,7 @@ def analyze_text(text):
     return analyze_content(text, is_audio=False)
 
 # Only run Streamlit UI when executed directly
-if __name__ == "__main__" or "streamlit" in str(type(st)):
+if __name__ == "__main__":
      # 3. Streamlit UI
     st.set_page_config(page_title="ScamGuard (Gemini Edition)", page_icon="🛡️")
     st.title("🛡️ ScamGuard: AI Fraud Detector")
@@ -100,7 +90,8 @@ if __name__ == "__main__" or "streamlit" in str(type(st)):
         user_input = st.text_area("Paste message here:", height=150)
         if st.button("Analyze Text"):
             if user_input:
-                result = analyze_content(user_input, is_audio=False)
+                with st.spinner("Consulting Gemini AI..."):
+                    result = analyze_content(user_input, is_audio=False)
                 st.markdown(result)
             else:
                 st.warning("Please paste some text first.")
@@ -117,11 +108,12 @@ if __name__ == "__main__" or "streamlit" in str(type(st)):
                 tmp_path = tmp.name
 
             try:
-                # Upload the file to Gemini
-                uploaded_file = genai.upload_file(tmp_path)
-                
-                # Analyze
-                result = analyze_content(uploaded_file, is_audio=True)
+                with st.spinner("Consulting Gemini AI..."):
+                    # Upload the file to Gemini
+                    uploaded_file = genai.upload_file(tmp_path)
+                    
+                    # Analyze
+                    result = analyze_content(uploaded_file, is_audio=True)
                 st.markdown(result)
                 
             except Exception as e:
