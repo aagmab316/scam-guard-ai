@@ -69,6 +69,13 @@ def analyze_text(text):
     Returns:
         str: Markdown-formatted analysis report
     """
+    # Validate input
+    if not isinstance(text, str):
+        return "⚠️ Error: Input must be a string."
+    
+    if not text or not text.strip():
+        return "⚠️ Error: No text provided."
+    
     return analyze_content(text, is_audio=False)
 
 # Only run Streamlit UI when executed directly
