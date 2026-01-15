@@ -9,16 +9,17 @@ import tempfile
 load_dotenv(Path(__file__).parent / ".env")
 api_key = os.getenv("GEMINI_API_KEY")
 
-# 2. Configure Gemini
-if not api_key:
-    st.error("⚠️ GEMINI_API_KEY missing. Check your .env file.")
-else:
+# 2. Configure Gemini (only if API key is available)
+if api_key:
     genai.configure(api_key=api_key)
 
 def analyze_content(content_input, is_audio=False):
     """
     Analyzes Text OR Audio using Gemini 1.5 Flash.
     """
+    if not api_key:
+        return "⚠️ Error: GEMINI_API_KEY missing. Check your .env file."
+    
     try:
         # Use 'gemini-1.5-flash' for speed and multimodal capabilities
         model = genai.GenerativeModel('gemini-1.5-flash')
@@ -46,59 +47,86 @@ def analyze_content(content_input, is_audio=False):
         [Specific advice based on the scam type]
         """
 
-        with st.spinner("Consulting Gemini AI..."):
+        # Use spinner only when streamlit is actually running
+        try:
+            with st.spinner("Consulting Gemini AI..."):
+                if is_audio:
+                    # Gemini can process the audio file directly!
+                    response = model.generate_content([base_prompt, content_input])
+                else:
+                    # Text analysis
+                    response = model.generate_content(f"{base_prompt}\n\nMessage to Analyze:\n{content_input}")
+        except:
+            # If not in streamlit context, just run without spinner
             if is_audio:
-                # Gemini can process the audio file directly!
                 response = model.generate_content([base_prompt, content_input])
             else:
-                # Text analysis
                 response = model.generate_content(f"{base_prompt}\n\nMessage to Analyze:\n{content_input}")
                 
-            return response.text
+        return response.text
             
     except Exception as e:
         return f"Error connecting to Gemini: {e}"
 
- # 3. Streamlit UI
-st.set_page_config(page_title="ScamGuard (Gemini Edition)", page_icon="🛡️")
-st.title("🛡️ ScamGuard: AI Fraud Detector")
-st.caption("Powered by Google Gemini 1.5 Flash")
-
-tab1, tab2 = st.tabs(["📝 Text/SMS Check", "🎤 Audio/Call Check"])
-
-# --- Tab 1: Text Analysis ---
-with tab1:
-    st.header("Check Suspicious Messages")
-    user_input = st.text_area("Paste message here:", height=150)
-    if st.button("Analyze Text"):
-        if user_input:
-            result = analyze_content(user_input, is_audio=False)
-            st.markdown(result)
-        else:
-            st.warning("Please paste some text first.")
-
-# --- Tab 2: Audio Analysis ---
-with tab2:
-    st.header("Check Suspicious Voice Notes")
-    audio_file = st.file_uploader("Upload audio (mp3, wav)", type=['mp3', 'wav', 'm4a'])
+def analyze_text(text):
+    """
+    Public API function to analyze text for scams.
+    This function can be imported and used by other modules.
     
-    if audio_file and st.button("Analyze Audio"):
-        # Gemini needs a file path, so we save the upload to a temp file
-        with tempfile.NamedTemporaryFile(delete=False, suffix=".mp3") as tmp:
-            tmp.write(audio_file.getvalue())
-            tmp_path = tmp.name
+    Args:
+        text (str): The text message to analyze for fraud indicators
+        
+    Returns:
+        str: Markdown-formatted analysis report
+    """
+    return analyze_content(text, is_audio=False)
 
-        try:
-            # Upload the file to Gemini
-            uploaded_file = genai.upload_file(tmp_path)
-            
-            # Analyze
-            result = analyze_content(uploaded_file, is_audio=True)
-            st.markdown(result)
-            
-        except Exception as e:
-            st.error(f"Audio processing error: {e}")
-        finally:
-            # Cleanup: Remove temp file
-            if os.path.exists(tmp_path):
-                os.remove(tmp_path)
+# Only run Streamlit UI when executed directly
+if __name__ == "__main__" or "streamlit" in str(type(st)):
+     # 3. Streamlit UI
+    st.set_page_config(page_title="ScamGuard (Gemini Edition)", page_icon="🛡️")
+    st.title("🛡️ ScamGuard: AI Fraud Detector")
+    st.caption("Powered by Google Gemini 1.5 Flash")
+    
+    # Show error if API key is missing
+    if not api_key:
+        st.error("⚠️ GEMINI_API_KEY missing. Check your .env file.")
+
+    tab1, tab2 = st.tabs(["📝 Text/SMS Check", "🎤 Audio/Call Check"])
+
+    # --- Tab 1: Text Analysis ---
+    with tab1:
+        st.header("Check Suspicious Messages")
+        user_input = st.text_area("Paste message here:", height=150)
+        if st.button("Analyze Text"):
+            if user_input:
+                result = analyze_content(user_input, is_audio=False)
+                st.markdown(result)
+            else:
+                st.warning("Please paste some text first.")
+
+    # --- Tab 2: Audio Analysis ---
+    with tab2:
+        st.header("Check Suspicious Voice Notes")
+        audio_file = st.file_uploader("Upload audio (mp3, wav)", type=['mp3', 'wav', 'm4a'])
+        
+        if audio_file and st.button("Analyze Audio"):
+            # Gemini needs a file path, so we save the upload to a temp file
+            with tempfile.NamedTemporaryFile(delete=False, suffix=".mp3") as tmp:
+                tmp.write(audio_file.getvalue())
+                tmp_path = tmp.name
+
+            try:
+                # Upload the file to Gemini
+                uploaded_file = genai.upload_file(tmp_path)
+                
+                # Analyze
+                result = analyze_content(uploaded_file, is_audio=True)
+                st.markdown(result)
+                
+            except Exception as e:
+                st.error(f"Audio processing error: {e}")
+            finally:
+                # Cleanup: Remove temp file
+                if os.path.exists(tmp_path):
+                    os.remove(tmp_path)
