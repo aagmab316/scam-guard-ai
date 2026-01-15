@@ -73,7 +73,7 @@ def analyze_text(text):
 
 # Only run Streamlit UI when executed directly
 if __name__ == "__main__":
-     # 3. Streamlit UI
+    # 3. Streamlit UI
     st.set_page_config(page_title="ScamGuard (Gemini Edition)", page_icon="🛡️")
     st.title("🛡️ ScamGuard: AI Fraud Detector")
     st.caption("Powered by Google Gemini 1.5 Flash")
