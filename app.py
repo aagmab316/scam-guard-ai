@@ -2,10 +2,11 @@ import streamlit as st
 import os
 import google.generativeai as genai
 from dotenv import load_dotenv
+from pathlib import Path
 import tempfile
 
-# 1. Load Environment Variables
-load_dotenv()
+# 1. Load Environment Variables (explicit path)
+load_dotenv(Path(__file__).parent / ".env")
 api_key = os.getenv("GEMINI_API_KEY")
 
 # 2. Configure Gemini
